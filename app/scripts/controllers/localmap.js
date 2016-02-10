@@ -59,11 +59,8 @@ angular.module('accessimapEditeurDerApp')
                         .translate(zoom.translate())();
 
                 angular.forEach($scope.geojson, function(geojson) {
-                    d3.selectAll('path.' + geojson.id)
-                            .filter(function(d) {
-                                return d.geometry.type !== 'Point'; })
-                            .attr('d', path);
-                    d3.selectAll('path.inner.' + geojson.id)
+                    d3.selectAll('g.' + geojson.id)
+                            .selectAll('path')
                             .filter(function(d) {
                                 return d.geometry.type !== 'Point'; })
                             .attr('d', path);
@@ -341,9 +338,9 @@ angular.module('accessimapEditeurDerApp')
                 $scope.geojson.splice(index, 1);
 
                 // Remove object from map
-                d3.select('.vector#' + id).remove();
-                if (d3.select('.vector.inner#' + id)) {
-                    d3.select('.vector.inner#' + id).remove();
+                d3.select('.' + id).remove();
+                if (d3.select('.' + id)) {
+                    d3.select('.' + id).remove();
                 }
 
                 // Remove object from legend
@@ -440,9 +437,9 @@ angular.module('accessimapEditeurDerApp')
 
             function simplifyFeatures(feature) {
                 //if (feature.simplification > 0) {
-                    d3.select('.vector#' + feature.id).remove();
-                    if (d3.select('.vector.inner#' + feature.id)) {
-                        d3.select('.vector.inner#' + feature.id).remove();
+                    d3.select('.' + feature.id).remove();
+                    if (d3.select('.inner.' + feature.id)) {
+                        d3.select('.inner.' + feature.id).remove();
                     }
                     var data = $.extend(true, {}, feature.originallayer);
                     geojsonToSvg(data, feature.simplification / 100000, feature.id);
@@ -453,67 +450,61 @@ angular.module('accessimapEditeurDerApp')
                 var featureGroup;
                 var geometryType = feature[0].geometryType;
                 var drawingLayer = d3.select('#' + geometryType + 's-layer');
-                if (optionalClass) {
-                    if (d3.select('.vector.' + optionalClass + '#' + feature[0].id).empty()) {
-                        featureGroup = drawingLayer.append('g')
-                        .attr('class', 'vector ' + optionalClass)
-                        .classed('rotable', true)
-                        .attr('id', feature[0].id);
-                    } else {
-                        featureGroup = d3.select('.vector.' + optionalClass + '#' + feature[0].id);
-                    }
-                } else {
-                    if (d3.select('.vector#' + feature[0].id).empty()) {
-                        featureGroup = drawingLayer.append('g')
-                        .attr('class', 'vector')
-                        .classed('rotable', true)
-                        .attr('id', feature[0].id);
-                    } else {
-                        featureGroup = d3.select('.vector#' + feature[0].id);
-                    }
-                }
 
-                featureGroup
-                    .selectAll('path')
-                    .data(data.features.filter(function(d) {
-                        return d.geometry.type !== 'Point';
-                    }))
-                    .enter().append('path')
-                    .attr('class', function() {
-                        if (optionalClass) {
-                            return feature[0].id + ' ' + optionalClass;
-                        } else {
-                            return feature[0].id;
-                        }
-                    })
-                    .attr('name', function(d) {
-                        if (d.properties.tags) {
-                            return d.properties.tags.name;
-                        }
-                    })
-                    .append('svg:title')
-                        .text(function(d) { return d.properties.tags.name; })
-                    .attr('d', path)
-                    .data(data.features.filter(function(d) {
-                        return d.geometry.type === 'Point';
-                    }))
-                    .enter().append('path')
-                    .attr('class', feature[0].id)
-                    .attr('name', function(d) {
-                        if (d.properties.tags) {
-                            return d.properties.tags.name;
-                        }
-                    })
-                    .attr('cx', function(d) {
-                        return projection(d.geometry.coordinates)[0];
-                    })
-                    .attr('cy', function(d) {
-                        return projection(d.geometry.coordinates)[1];
-                    })
-                    .attr('d', function(d) {
-                        var coords = projection(d.geometry.coordinates);
-                        return feature[0].style.path(coords[0], coords[1], feature[0].style.radius);
-                    });
+                angular.forEach(data.features, function(d) {
+                    var group = drawingLayer
+                        .append('g')
+                        .classed(feature[0].id, true);
+
+                    group.selectAll('path')
+                        .data([d])
+                        .enter().append('path')
+                        .attr('name', function() {
+                            if (d.properties.tags) {
+                                return d.properties.tags.name;
+                            }
+                        })
+                        .attr('d', path)
+                        .append('svg:title')
+                            .text(function() { return d.properties.tags.name; })
+
+                    if (optionalClass) {
+                        group.selectAll('path.' + optionalClass)
+                            .data([d])
+                            .enter().append('path')
+                            .classed(optionalClass, true)
+                            .attr('name', function() {
+                                if (d.properties.tags) {
+                                    return d.properties.tags.name;
+                                }
+                            })
+                            .attr('d', path)
+                            .append('svg:title')
+                                .text(function() { return d.properties.tags.name; })
+                    }
+                })
+
+                // drawingLayer
+                    // .data(data.features.filter(function(d) {
+                    //     return d.geometry.type === 'Point';
+                    // }))
+                    // .enter().append('path')
+                    // .attr('class', feature[0].id)
+                    // .attr('name', function(d) {
+                    //     if (d.properties.tags) {
+                    //         return d.properties.tags.name;
+                    //     }
+                    // })
+                    // .attr('cx', function(d) {
+                    //     return projection(d.geometry.coordinates)[0];
+                    // })
+                    // .attr('cy', function(d) {
+                    //     return projection(d.geometry.coordinates)[1];
+                    // })
+                    // .attr('d', function(d) {
+                    //     var coords = projection(d.geometry.coordinates);
+                    //     return feature[0].style.path(coords[0], coords[1], feature[0].style.radius);
+                    // });
 
                 angular.forEach(feature[0].style.style, function(attribute) {
                     var k = attribute.k;
@@ -522,9 +513,9 @@ angular.module('accessimapEditeurDerApp')
                         if ($scope.colorChosen && $scope.colorChosen.color !== 'none') {
                             v += '_' + $scope.colorChosen.color;
                         }
-                        d3.select('#' + feature[0].id).attr('fill', settings.POLYGON_STYLES[v].url());
+                        d3.selectAll('.' + feature[0].id).selectAll('path').attr('fill', settings.POLYGON_STYLES[v].url());
                     } else {
-                        d3.select('#' + feature[0].id).attr(k, v);
+                        d3.selectAll('.' + feature[0].id).selectAll('path').attr(k, v);
                     }
                 });
                 if (optionalClass) {
@@ -535,21 +526,21 @@ angular.module('accessimapEditeurDerApp')
                             if ($scope.colorChosen && $scope.colorChosen.color !== 'none') {
                                 v += '_' + $scope.colorChosen.color;
                             }
-                            d3.select('.' + optionalClass + '#' + feature[0].id).attr('fill', settings.POLYGON_STYLES[v].url());
+                            d3.selectAll('.' + feature[0].id).selectAll('path.' + optionalClass).attr('fill', settings.POLYGON_STYLES[v].url());
                         } else {
-                            d3.select('.' + optionalClass + '#' + feature[0].id).attr(k, v);
+                            d3.selectAll('.' + feature[0].id).selectAll('path.' + optionalClass).attr(k, v);
                         }
                     });
                 }
-                if ($scope.checkboxModel.contour && !d3.select('#' + feature[0].id).attr('stroke')) {
-                    d3.select('#' + feature[0].id)
+                if ($scope.checkboxModel.contour && !d3.select('.' + feature[0].id).attr('stroke')) {
+                    d3.select('.' + feature[0].id)
                         .attr('stroke', 'black')
                         .attr('stroke-width', '2');
                 }
 
                 if (optionalClass) {
                     angular.forEach(feature[0].style['style_' + optionalClass], function(attribute) {
-                        d3.select('.' + optionalClass + '#' + feature[0].id)
+                        d3.select('.' + optionalClass + '.' + feature[0].id)
                             .attr(attribute.k, attribute.v);
                     });
                 }
@@ -605,14 +596,16 @@ angular.module('accessimapEditeurDerApp')
                             addToLegend($scope.queryChosen, $scope.styleChosen, $scope.geojson.length);
                         }
                         $scope.geojson.push(obj);
-                        drawFeature(data, [obj]);
                         if ($scope.styleChosen.styleInner) {
                             drawFeature(data, [obj], 'inner');
+                        } else {
+                            drawFeature(data, [obj]);
                         }
                     } else {
-                        drawFeature(data, featureExists);
                         if ($scope.styleChosen.styleInner) {
                             drawFeature(data, featureExists, 'inner');
+                        } else {
+                            drawFeature(data, featureExists);
                         }
                     }
 

@@ -85,8 +85,8 @@ angular.module('accessimapEditeurDerApp')
 
         this.createDrawing = function(target) {
             var drawingGroup = target.append('g')
-                .attr('id', 'drawing-layer');
-                //.classed('rotable', true);
+                .attr('id', 'drawing-layer')
+                .classed('rotable', true);
 
             drawingGroup.append('g')
                 .attr('id', 'polygons-layer');
